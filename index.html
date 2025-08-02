@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Tập Gõ Chữ: Từ Vựng</title>
+    <title>Game Tập Gõ Chữ: V3</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -33,21 +33,32 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            /* Thêm các thuộc tính mới để tự động điều chỉnh kích thước */
             max-height: 80vh;
             margin-top: 20px;
         }
 
         .falling-char {
             position: absolute;
-            top: -50px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             font-size: 3em;
             font-weight: bold;
             color: #ffcc00;
             text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
             user-select: none;
-            will-change: transform, top, left;
-            animation: bounce 1.5s infinite;
+            cursor: pointer;
+            width: 50px;
+            height: 50px;
+            line-height: 50px;
+            border-radius: 50%;
+            background-color: rgba(255, 204, 0, 0.2);
+            transition: transform 0.1s ease-out, background-color 0.1s ease-out;
+        }
+        
+        .falling-char.correct {
+            animation: pulse 0.5s ease-in-out;
+            color: #32cd32;
         }
 
         .correct-char-display {
@@ -182,12 +193,24 @@
                 transform: translateY(-10px);
             }
         }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
 
         /* Thêm các điều chỉnh cho các thiết bị nhỏ hơn */
         @media (max-width: 768px) {
             .game-container {
                 height: 50vh;
-                max-width: 95%; /* Sử dụng max-width để thích ứng tốt hơn */
+                max-width: 95%; 
             }
             .word-info .emoji {
                 font-size: 3em;
@@ -214,6 +237,7 @@
         <!-- Menu chính sẽ được hiển thị khi game không chạy -->
         <div id="main-menu" class="main-menu">
             <h1>Game Gõ Từ Vựng</h1>
+            <p>Chạm vào các chữ cái để tạo thành từ!</p>
             <p>Bấm Bắt đầu để chơi</p>
         </div>
         <!-- Thông báo kết thúc game -->
@@ -241,9 +265,6 @@
         <button id="reset-btn" class="btn btn-reset">Chơi lại</button>
     </div>
     
-    <!-- Input ẩn để kích hoạt bàn phím ảo trên di động -->
-    <input type="text" id="hidden-input" style="position: absolute; opacity: 0; pointer-events: none; z-index: -1;">
-
     <script>
         // Danh sách các từ vựng với nghĩa tiếng Việt và emoji
         const words = [
@@ -305,7 +326,7 @@
             { english: "yo-yo", vietnamese: "đồ chơi yoyo", emoji: "🪀" },
             { english: "zebra", vietnamese: "ngựa vằn", emoji: "🦓" }
         ];
-
+        
         // Lấy các phần tử DOM cần thiết
         const gameContainer = document.querySelector('.game-container');
         const startBtn = document.getElementById('start-btn');
@@ -318,7 +339,6 @@
         const wordInfo = document.getElementById('word-info');
         const wordEmoji = document.getElementById('word-emoji');
         const wordVietnamese = document.getElementById('word-vietnamese');
-        const hiddenInput = document.getElementById('hidden-input');
         
         // Các biến trạng thái của game
         let currentWordChars = [];
@@ -332,48 +352,39 @@
         let nextWordTimeoutId = null;
 
         /**
+         * Hàm xáo trộn mảng ngẫu nhiên (Fisher-Yates shuffle)
+         * @param {Array} array - Mảng cần xáo trộn.
+         */
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [
+                    array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        /**
          * Tạo một chữ cái rơi từ trên xuống, di chuyển ngang theo thứ tự.
          * @param {string} char - Ký tự sẽ được tạo.
-         * @param {number} charIndex - Vị trí của ký tự trong từ.
-         * @param {number} totalChars - Tổng số ký tự trong từ.
          */
-        function createFallingChar(char, charIndex, totalChars) {
+        function createFallingChar(char) {
             const charElement = document.createElement('div');
             charElement.classList.add('falling-char');
             charElement.textContent = char;
+            
+            // Đặt vị trí ngẫu nhiên trên màn hình
+            const randomX = Math.random() * (gameContainer.offsetWidth - 50);
+            const randomY = Math.random() * (gameContainer.offsetHeight - 50);
+            
+            charElement.style.left = `${randomX}px`;
+            charElement.style.top = `${randomY}px`;
+            
+            charElement.addEventListener('click', () => handleKeyPress({ key: char }));
+            
             gameContainer.appendChild(charElement);
-
-            // Thời gian rơi đã được tăng lên để làm cho chữ rơi chậm hơn
-            const fallingDuration = 12000;
-            const horizontalRange = gameContainer.offsetWidth - 50;
-            const horizontalStep = horizontalRange / totalChars;
-            const startX = horizontalStep * charIndex;
-            const startTime = performance.now();
-
-            function animateChar(currentTime) {
-                if (!isGameRunning && charElement.parentElement) {
-                    charElement.remove();
-                    return;
-                }
-                
-                const elapsedTime = currentTime - startTime;
-                const progress = elapsedTime / fallingDuration;
-
-                if (progress >= 1) {
-                    if (charElement.parentElement) {
-                        charElement.remove();
-                        endWord();
-                        return;
-                    }
-                }
-                
-                charElement.style.top = `${progress * gameContainer.offsetHeight}px`;
-                charElement.style.left = `${startX + (progress * 10)}px`;
-                
-                animationFrames.push(requestAnimationFrame(animateChar));
-            }
-
-            animationFrames.push(requestAnimationFrame(animateChar));
             fallingChars.push({ element: charElement, char: char });
         }
 
@@ -397,26 +408,12 @@
             endGameMessage.style.display = 'none';
             score = 0;
             currentWordDataIndex = 0;
+            // Xóa hàm xáo trộn từ vựng để giữ nguyên thứ tự
+            // shuffle(words);
             updateScoreDisplay();
             startNewWord();
-            document.addEventListener('keydown', handleKeyPress);
             startBtn.style.display = 'none';
             resetBtn.style.display = 'block';
-
-            // Tự động tập trung vào input ẩn để kích hoạt bàn phím ảo
-            // Sử dụng một setTimeout nhỏ để đảm bảo sự kiện click được xử lý trước
-            if (isMobile()) {
-                setTimeout(() => {
-                    hiddenInput.focus();
-                }, 100);
-            }
-        }
-
-        /**
-         * Kiểm tra xem thiết bị có phải là di động không.
-         */
-        function isMobile() {
-            return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         }
 
         /**
@@ -435,7 +432,8 @@
             }
             
             const currentWordData = words[currentWordDataIndex];
-            currentWordChars = currentWordData.english.split('');
+            currentWordChars = currentWordData.english.toUpperCase().split('');
+            const charsToCreate = currentWordChars.filter(char => char !== ' ');
 
             currentWordDisplay.textContent = currentWordData.english;
             wordEmoji.textContent = currentWordData.emoji;
@@ -449,63 +447,19 @@
             fallingChars = [];
 
             // Đọc từ khi bắt đầu
-            playWordAudio(currentWordDisplay.textContent);
+            playWordAudio(currentWordData.english);
             
-            let delay = 0;
-            const totalChars = currentWordChars.filter(char => char !== ' ').length;
-            let fallingCharCount = 0;
-
-            currentWordChars.forEach(char => {
-                if (char !== ' ') {
-                    setTimeout(() => {
-                        createFallingChar(char.toUpperCase(), fallingCharCount, totalChars);
-                        fallingCharCount++;
-                    }, delay);
-                    delay += 300;
-                }
+            charsToCreate.forEach(char => {
+                createFallingChar(char);
             });
         }
 
         /**
-         * Kết thúc từ hiện tại nếu người chơi bỏ lỡ một chữ.
-         */
-        function endWord() {
-            if(!isGameRunning) {
-                return;
-            }
-
-            isGameRunning = false;
-            
-            cancelAnimations();
-            fallingChars.forEach(c => c.element.remove());
-            fallingChars = [];
-            
-            nextWordTimeoutId = setTimeout(() => {
-                isGameRunning = true;
-                startNewWord();
-            }, 2000);
-        }
-
-        /**
-         * Xử lý sự kiện khi người chơi bấm phím.
-         * @param {KeyboardEvent} e - Sự kiện bàn phím.
+         * Xử lý sự kiện khi người chơi bấm phím hoặc chạm vào chữ cái.
+         * @param {object} e - Sự kiện.
          */
         function handleKeyPress(e) {
             if (!isGameRunning || wordIndex >= currentWordChars.length) {
-                return;
-            }
-
-            let keyPress = e.key;
-
-            if (isMobile()) {
-                // Kiểm tra ký tự từ input ẩn, nếu có thì ưu tiên dùng
-                if (hiddenInput.value) {
-                    keyPress = hiddenInput.value.slice(-1);
-                    hiddenInput.value = '';
-                } else {
-                    return; // Bỏ qua nếu không có ký tự nào được gõ
-                }
-            } else if (e.key.length !== 1) {
                 return;
             }
 
@@ -519,7 +473,7 @@
                 return;
             }
 
-            const keyPressed = keyPress.toUpperCase();
+            const keyPressed = e.key.toUpperCase();
             const targetChar = currentWordChars[wordIndex].toUpperCase();
 
             if (keyPressed === targetChar) {
@@ -556,8 +510,8 @@
             
             isGameRunning = false;
             
-            const currentWordData = words[currentWordDataIndex - 1]; // Lấy từ vừa hoàn thành
-            playWordAudio(currentWordData.english); // Đọc lại từ đó
+            const currentWordData = words[currentWordDataIndex - 1];
+            playWordAudio(currentWordData.english);
 
             nextWordTimeoutId = setTimeout(() => {
                 isGameRunning = true;
@@ -575,9 +529,6 @@
             wordInfo.style.opacity = 0;
             playFireworks();
             endGameMessage.style.display = 'block';
-
-            // Xóa focus khỏi input ẩn
-            hiddenInput.blur();
         }
 
         /**
@@ -665,30 +616,11 @@
             gameContainer.querySelectorAll('.falling-char').forEach(char => char.remove());
             fallingChars = [];
             
-            document.removeEventListener('keydown', handleKeyPress);
             speechSynthesis.cancel();
             
             document.querySelectorAll('.firework').forEach(fw => fw.remove());
-
-            // Xóa focus khỏi input ẩn
-            hiddenInput.blur();
         }
         
-        // Cố gắng giữ bàn phím ảo luôn bật bằng cách tự động lấy lại focus
-        hiddenInput.addEventListener('blur', () => {
-            if (isGameRunning) {
-                hiddenInput.focus();
-            }
-        });
-        
-        // Thêm sự kiện input để xử lý trên di động
-        hiddenInput.addEventListener('input', (e) => {
-            if (e.data) {
-                handleKeyPress({ key: e.data });
-            }
-            hiddenInput.value = ''; // Reset giá trị sau khi xử lý
-        });
-
         // Gắn sự kiện click cho các nút
         startBtn.addEventListener('click', startGame);
         resetBtn.addEventListener('click', resetGame);
@@ -698,7 +630,6 @@
 
         // Cập nhật kích thước game khi cửa sổ thay đổi
         window.addEventListener('resize', () => {
-            // Cập nhật lại kích thước của game container
             const containerWidth = window.innerWidth * 0.9;
             const containerHeight = Math.min(600, window.innerHeight * 0.8);
             gameContainer.style.width = `${containerWidth}px`;
