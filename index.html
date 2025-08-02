@@ -29,6 +29,10 @@
             box-shadow: 0 0 20px rgba(0, 191, 255, 0.5);
             overflow: hidden;
             border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
 
         .falling-char {
@@ -175,6 +179,29 @@
                 transform: translateY(-10px);
             }
         }
+
+        /* Thêm các điều chỉnh cho các thiết bị nhỏ hơn */
+        @media (max-width: 768px) {
+            .game-container {
+                height: 50vh;
+            }
+            .word-info .emoji {
+                font-size: 3em;
+            }
+            .word-info .vietnamese {
+                font-size: 1.2em;
+            }
+            .falling-char {
+                font-size: 2em;
+            }
+            .correct-char-display {
+                font-size: 1.5em;
+            }
+            .btn {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+        }
     </style>
 </head>
 <body>
@@ -209,6 +236,9 @@
         <button id="start-btn" class="btn btn-start">Bắt đầu</button>
         <button id="reset-btn" class="btn btn-reset">Chơi lại</button>
     </div>
+    
+    <!-- Input ẩn để kích hoạt bàn phím ảo trên di động -->
+    <input type="text" id="hidden-input" style="position: absolute; opacity: 0; pointer-events: none;">
 
     <script>
         // Danh sách các từ vựng với nghĩa tiếng Việt và emoji
@@ -284,6 +314,7 @@
         const wordInfo = document.getElementById('word-info');
         const wordEmoji = document.getElementById('word-emoji');
         const wordVietnamese = document.getElementById('word-vietnamese');
+        const hiddenInput = document.getElementById('hidden-input');
         
         // Các biến trạng thái của game
         let currentWordChars = [];
@@ -366,6 +397,9 @@
             document.addEventListener('keydown', handleKeyPress);
             startBtn.style.display = 'none';
             resetBtn.style.display = 'block';
+
+            // Tự động tập trung vào input ẩn để kích hoạt bàn phím ảo
+            hiddenInput.focus();
         }
 
         /**
@@ -443,6 +477,10 @@
             if (!isGameRunning || wordIndex >= currentWordChars.length) {
                 return;
             }
+            // Đảm bảo chỉ xử lý input từ bàn phím chữ cái
+            if (e.key.length !== 1) {
+                return;
+            }
 
             while (currentWordChars[wordIndex] === ' ' && wordIndex < currentWordChars.length) {
                 correctCharDisplay.textContent += ' ';
@@ -510,6 +548,9 @@
             wordInfo.style.opacity = 0;
             playFireworks();
             endGameMessage.style.display = 'block';
+
+            // Xóa focus khỏi input ẩn
+            hiddenInput.blur();
         }
 
         /**
@@ -601,7 +642,17 @@
             speechSynthesis.cancel();
             
             document.querySelectorAll('.firework').forEach(fw => fw.remove());
+
+            // Xóa focus khỏi input ẩn
+            hiddenInput.blur();
         }
+        
+        // Cố gắng giữ bàn phím ảo luôn bật bằng cách tự động lấy lại focus
+        hiddenInput.addEventListener('blur', () => {
+            if (isGameRunning) {
+                hiddenInput.focus();
+            }
+        });
 
         // Gắn sự kiện click cho các nút
         startBtn.addEventListener('click', startGame);
