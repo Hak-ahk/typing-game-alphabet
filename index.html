@@ -397,6 +397,7 @@
             gameContainer.querySelectorAll('.falling-char').forEach(char => char.remove());
             fallingChars = [];
 
+            // Đọc từ khi bắt đầu
             playWordAudio(currentWordDisplay.textContent);
             
             let delay = 0;
@@ -489,6 +490,10 @@
             playFireworks();
             
             isGameRunning = false;
+            
+            const currentWordData = words[currentWordDataIndex - 1]; // Lấy từ vừa hoàn thành
+            playWordAudio(currentWordData.english); // Đọc lại từ đó
+
             nextWordTimeoutId = setTimeout(() => {
                 isGameRunning = true;
                 startNewWord();
