@@ -343,7 +343,8 @@
             charElement.textContent = char;
             gameContainer.appendChild(charElement);
 
-            const fallingDuration = 8000;
+            // Thời gian rơi đã được tăng lên để làm cho chữ rơi chậm hơn
+            const fallingDuration = 12000;
             const horizontalRange = gameContainer.offsetWidth - 50;
             const horizontalStep = horizontalRange / totalChars;
             const startX = horizontalStep * charIndex;
@@ -412,7 +413,7 @@
          * Kiểm tra xem thiết bị có phải là di động không.
          */
         function isMobile() {
-            return /Mobi|Android/i.test(navigator.userAgent);
+            return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         }
 
         /**
@@ -490,8 +491,13 @@
             if (!isGameRunning || wordIndex >= currentWordChars.length) {
                 return;
             }
-            // Đảm bảo chỉ xử lý input từ bàn phím chữ cái
-            if (e.key.length !== 1) {
+
+            let keyPress = e.key;
+
+            if (isMobile() && hiddenInput.value) {
+                keyPress = hiddenInput.value.slice(-1); // Lấy ký tự cuối cùng từ input ẩn
+                hiddenInput.value = ''; // Xóa input để chuẩn bị cho ký tự tiếp theo
+            } else if (e.key.length !== 1) {
                 return;
             }
 
@@ -505,7 +511,7 @@
                 return;
             }
 
-            const keyPressed = e.key.toUpperCase();
+            const keyPressed = keyPress.toUpperCase();
             const targetChar = currentWordChars[wordIndex].toUpperCase();
 
             if (keyPressed === targetChar) {
@@ -665,6 +671,14 @@
             if (isGameRunning) {
                 hiddenInput.focus();
             }
+        });
+        
+        // Thêm sự kiện input để xử lý trên di động
+        hiddenInput.addEventListener('input', (e) => {
+            if (e.data) {
+                handleKeyPress({ key: e.data });
+            }
+            hiddenInput.value = ''; // Reset giá trị sau khi xử lý
         });
 
         // Gắn sự kiện click cho các nút
