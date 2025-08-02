@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Tập Gõ Chữ: V3</title>
+    <title>Game Tập Gõ Chữ: V4</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -39,9 +39,6 @@
 
         .falling-char {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
             font-size: 3em;
             font-weight: bold;
             color: #ffcc00;
@@ -53,7 +50,7 @@
             line-height: 50px;
             border-radius: 50%;
             background-color: rgba(255, 204, 0, 0.2);
-            transition: transform 0.1s ease-out, background-color 0.1s ease-out;
+            transition: background-color 0.1s ease-out;
         }
         
         .falling-char.correct {
@@ -287,7 +284,7 @@
             { english: "frog", vietnamese: "con ếch", emoji: "🐸" },
             { english: "gift", vietnamese: "quà tặng", emoji: "🎁" },
             { english: "goat", vietnamese: "con dê", emoji: "🐐" },
-            { english: "bunch of grapes", vietnamese: "chùm nho", emoji: "🍇" },
+            { english: "grapes", vietnamese: "chùm nho", emoji: "🍇" },
             { english: "hat", vietnamese: "cái mũ", emoji: "🎩" },
             { english: "horse", vietnamese: "con ngựa", emoji: "🐎" },
             { english: "house", vietnamese: "ngôi nhà", emoji: "🏠" },
@@ -386,6 +383,31 @@
             
             gameContainer.appendChild(charElement);
             fallingChars.push({ element: charElement, char: char });
+            
+            // Thêm hiệu ứng di chuyển ngẫu nhiên
+            animateRandomMovement(charElement);
+        }
+
+        /**
+         * Hàm tạo hiệu ứng di chuyển ngẫu nhiên cho chữ cái.
+         * @param {HTMLElement} element - Phần tử chữ cái cần di chuyển.
+         */
+        function animateRandomMovement(element) {
+            if (!isGameRunning) {
+                return;
+            }
+
+            const duration = 2000 + Math.random() * 3000;
+            const newX = Math.random() * (gameContainer.offsetWidth - 50);
+            const newY = Math.random() * (gameContainer.offsetHeight - 50);
+
+            element.style.transition = `top ${duration}ms ease-in-out, left ${duration}ms ease-in-out`;
+            element.style.left = `${newX}px`;
+            element.style.top = `${newY}px`;
+
+            setTimeout(() => {
+                animateRandomMovement(element);
+            }, duration);
         }
 
         /**
@@ -408,8 +430,6 @@
             endGameMessage.style.display = 'none';
             score = 0;
             currentWordDataIndex = 0;
-            // Xóa hàm xáo trộn từ vựng để giữ nguyên thứ tự
-            // shuffle(words);
             updateScoreDisplay();
             startNewWord();
             startBtn.style.display = 'none';
@@ -477,12 +497,11 @@
             const targetChar = currentWordChars[wordIndex].toUpperCase();
 
             if (keyPressed === targetChar) {
-                const charToFindIndex = fallingChars.findIndex(c => c.char.toUpperCase() === targetChar);
+                const charToFind = fallingChars.find(c => c.char.toUpperCase() === targetChar);
                 
-                if (charToFindIndex !== -1) {
-                    const charToFind = fallingChars[charToFindIndex];
+                if (charToFind) {
                     charToFind.element.remove();
-                    fallingChars.splice(charToFindIndex, 1);
+                    fallingChars = fallingChars.filter(c => c !== charToFind);
                     
                     correctCharDisplay.textContent += currentWordChars[wordIndex];
                     wordIndex++;
