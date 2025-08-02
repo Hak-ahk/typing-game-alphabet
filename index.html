@@ -33,6 +33,9 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            /* Thêm các thuộc tính mới để tự động điều chỉnh kích thước */
+            max-height: 80vh;
+            margin-top: 20px;
         }
 
         .falling-char {
@@ -184,6 +187,7 @@
         @media (max-width: 768px) {
             .game-container {
                 height: 50vh;
+                max-width: 95%; /* Sử dụng max-width để thích ứng tốt hơn */
             }
             .word-info .emoji {
                 font-size: 3em;
@@ -238,7 +242,7 @@
     </div>
     
     <!-- Input ẩn để kích hoạt bàn phím ảo trên di động -->
-    <input type="text" id="hidden-input" style="position: absolute; opacity: 0; pointer-events: none;">
+    <input type="text" id="hidden-input" style="position: absolute; opacity: 0; pointer-events: none; z-index: -1;">
 
     <script>
         // Danh sách các từ vựng với nghĩa tiếng Việt và emoji
@@ -399,7 +403,16 @@
             resetBtn.style.display = 'block';
 
             // Tự động tập trung vào input ẩn để kích hoạt bàn phím ảo
-            hiddenInput.focus();
+            if (isMobile()) {
+                hiddenInput.focus();
+            }
+        }
+
+        /**
+         * Kiểm tra xem thiết bị có phải là di động không.
+         */
+        function isMobile() {
+            return /Mobi|Android/i.test(navigator.userAgent);
         }
 
         /**
@@ -660,6 +673,15 @@
 
         // Khởi tạo game khi load trang
         resetGame();
+
+        // Cập nhật kích thước game khi cửa sổ thay đổi
+        window.addEventListener('resize', () => {
+            // Cập nhật lại kích thước của game container
+            const containerWidth = window.innerWidth * 0.9;
+            const containerHeight = Math.min(600, window.innerHeight * 0.8);
+            gameContainer.style.width = `${containerWidth}px`;
+            gameContainer.style.height = `${containerHeight}px`;
+        });
     </script>
 </body>
 </html>
